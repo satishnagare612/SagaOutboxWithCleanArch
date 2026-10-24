@@ -1,8 +1,26 @@
-# Saga and Outbox — Clean Architecture
+# Saga and Outbox with Clean Architecture
 
 A .NET 10 order workflow built from five independently deployable processes (Order API, Orchestrator,
 Inventory, Payment, Shipping), using the **saga** (orchestration) and **transactional outbox / inbox** patterns
 over Azure Service Bus and SQL Server. Each service owns its own database and outbox.
+
+---
+
+## Credits
+
+This project was built end-to-end using AI coding assistants—specifically **Deep Seek** (via Web interface), **GitHub Copilot** (via Visual Studio Community Edition) and **Google Antigravity** (via Visual Studio Code Extension).
+
+Not a single line of code was written by a human. All system architecture, development, clean-architecture refactoring, automated tests, and documentation were produced entirely through AI assistants.
+
+Whole effort took around four hours. The process followed is as below:
+
+1. Idea phase -> Interact with **Deep Seek** to establish broader expectations. Once refined get optimized tokens from **Deep Seek**
+2. Architecture phase -> Using **GitHub Copilot** to create basic structure and  working model
+3. Implementation phase -> Through interactive sessions and chats refine the idea.
+4. Final signoff and verify -> Give final touch and refactoring using **Google Antigravity**
+5. Documentation phase -> Using **Google Antigravity** create diagrams and documentation
+
+---
 
 ## Solution layout
 
