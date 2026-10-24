@@ -1,0 +1,11 @@
+@SagaOutBoxCleanArch.Orchestrator_HostAddress = http://localhost:5250
+@sagaId = 00000000-0000-0000-0000-000000000000
+
+### 1. Get Saga Status by Saga ID (returns saga instance, status, and completed steps)
+GET {{SagaOutBoxCleanArch.Orchestrator_HostAddress}}/api/sagas/{{sagaId}}
+Accept: application/json
+
+### 2. Health Check (Orchestrator)
+GET {{SagaOutBoxCleanArch.Orchestrator_HostAddress}}/health
+Accept: application/json
+

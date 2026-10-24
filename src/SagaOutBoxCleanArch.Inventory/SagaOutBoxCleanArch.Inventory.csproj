@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <UserSecretsId>dotnet-SagaOutBoxCleanArch.Inventory-4cce0bbb-0d79-4bce-9697-45980f2c8330</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SagaOutBoxCleanArch.Application\SagaOutBoxCleanArch.Application.csproj" />
+    <ProjectReference Include="..\SagaOutBoxCleanArch.Infrastructure\SagaOutBoxCleanArch.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

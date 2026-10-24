@@ -1,0 +1,71 @@
+sequenceDiagram
+    autonumber
+    actor Client as HTTP Client
+    participant API as Order API (SagaOutBoxCleanArch.Api)
+    participant Bus as Azure Service Bus
+    participant ORCH as Saga Orchestrator
+    participant INV as Inventory Worker
+    participant PAY as Payment Worker
+    participant SHIP as Shipping Worker
+
+    Note over Client, API: 1. Order Initiation
+    Client->>API: POST /api/orders (ProductId, Qty, UnitPrice)
+    Note over API: DB Transaction: Save Order (Pending) + Outbox(CreateOrderCommand, StartSaga)
+    API-->>Client: 201 Created (OrderDto, Location)
+    API->>Bus: Dispatch Outbox: CreateOrderCommand -> order-commands
+    API->>Bus: Dispatch Outbox: StartSaga -> saga-start
+
+    Note over Bus, ORCH: 2. Saga Lifecycle Initialization
+    Bus->>ORCH: StartSaga
+    Note over ORCH: DB Transaction: Save SagaInstance (AwaitingOrder)
+    Bus->>API: CreateOrderCommand
+    Note over API: DB Transaction: Confirm OrderCreated + Outbox(Reply: OrderCreated)
+    API->>Bus: Dispatch: Reply: OrderCreated -> saga-replies
+
+    Note over Bus, ORCH: 3. Forward Workflow: Inventory Reservation
+    Bus->>ORCH: Reply: OrderCreated (Success)
+    Note over ORCH: Update Saga (Status: ReservingInventory) + Outbox(ReserveInventory)
+    ORCH->>Bus: Dispatch: ReserveInventory -> inventory-commands
+    Bus->>INV: ReserveInventory
+    Note over INV: DB Transaction: Decrement Stock, Add Reservation + Outbox(Reply: ReserveInventory)
+    INV->>Bus: Dispatch: Reply: ReserveInventory (Success) -> saga-replies
+
+    Note over Bus, ORCH: 4. Forward Workflow: Payment Processing
+    Bus->>ORCH: Reply: ReserveInventory (Success)
+    Note over ORCH: Update Saga (Status: ProcessingPayment) + Outbox(ProcessPayment)
+    ORCH->>Bus: Dispatch: ProcessPayment -> payment-commands
+    Bus->>PAY: ProcessPayment
+    Note over PAY: DB Transaction: Record Payment + Outbox(Reply: ProcessPayment)
+    PAY->>Bus: Dispatch: Reply: ProcessPayment (Success) -> saga-replies
+
+    Note over Bus, ORCH: 5. Forward Step Fails: Arrange Shipping
+    Bus->>ORCH: Reply: ProcessPayment (Success)
+    Note over ORCH: Update Saga (Status: ArrangingShipping) + Outbox(ArrangeShipping)
+    ORCH->>Bus: Dispatch: ArrangeShipping -> shipping-commands
+    Bus->>SHIP: ArrangeShipping
+    Note over SHIP: Shipping fails (e.g., No Carrier / Validation) + Outbox(Reply: ArrangeShipping, Success=False)
+    SHIP->>Bus: Dispatch: Reply: ArrangeShipping (Success=False) -> saga-replies
+
+    Note over ORCH, Bus: 6. Reverse Compensation Execution
+    Bus->>ORCH: Reply: ArrangeShipping (Failed)
+    Note over ORCH: Plan: [RefundPayment, ReleaseInventory, CancelOrder]<br/>Status: Compensating
+    ORCH->>Bus: Dispatch: RefundPayment -> payment-commands
+    Bus->>PAY: RefundPayment
+    Note over PAY: DB Transaction: Process Refund + Outbox(Reply: RefundPayment)
+    PAY->>Bus: Dispatch: Reply: RefundPayment (Success) -> saga-replies
+
+    Bus->>ORCH: Reply: RefundPayment (Success)
+    ORCH->>Bus: Dispatch: ReleaseInventory -> inventory-commands
+    Bus->>INV: ReleaseInventory
+    Note over INV: DB Transaction: Restore Stock + Outbox(Reply: ReleaseInventory)
+    INV->>Bus: Dispatch: Reply: ReleaseInventory (Success) -> saga-replies
+
+    Bus->>ORCH: Reply: ReleaseInventory (Success)
+    ORCH->>Bus: Dispatch: CancelOrder -> order-commands
+    Bus->>API: CancelOrder
+    Note over API: DB Transaction: Order.Status = Cancelled + Outbox(Reply: CancelOrder)
+    API->>Bus: Dispatch: Reply: CancelOrder (Success) -> saga-replies
+
+    Bus->>ORCH: Reply: CancelOrder (Success)
+    Note over ORCH: All compensation steps completed.<br/>Status: Failed (Terminal Compensated)
+

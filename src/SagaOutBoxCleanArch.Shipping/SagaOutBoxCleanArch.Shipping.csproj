@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <UserSecretsId>dotnet-SagaOutBoxCleanArch.Shipping-24d78f54-f927-49d9-83aa-94aeef112459</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SagaOutBoxCleanArch.Application\SagaOutBoxCleanArch.Application.csproj" />
+    <ProjectReference Include="..\SagaOutBoxCleanArch.Infrastructure\SagaOutBoxCleanArch.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

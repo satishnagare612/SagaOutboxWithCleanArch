@@ -1,0 +1,6 @@
+bin/
+obj/
+session-state/
+.vs/
+*.user
+*.suo

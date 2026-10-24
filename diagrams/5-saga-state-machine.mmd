@@ -1,0 +1,30 @@
+stateDiagram-v2
+    [*] --> AwaitingOrder : StartSaga
+
+    state ForwardFlow {
+        AwaitingOrder --> ReservingInventory : Reply(OrderCreated, Success=True)
+        ReservingInventory --> ProcessingPayment : Reply(ReserveInventory, Success=True)
+        ProcessingPayment --> ArrangingShipping : Reply(ProcessPayment, Success=True)
+        ArrangingShipping --> Completed : Reply(ArrangeShipping, Success=True)
+    }
+
+    state FailureOrCancellation {
+        AwaitingOrder --> Compensating : OrderFailed or CancelSaga
+        ReservingInventory --> Compensating : Reply(ReserveInventory, Success=False) or CancelSaga
+        ProcessingPayment --> Compensating : Reply(ProcessPayment, Success=False) or CancelSaga
+        ArrangingShipping --> Compensating : Reply(ArrangeShipping, Success=False) or CancelSaga
+    }
+
+    state Compensating {
+        [*] --> ExecuteNextStep : BeginCompensation (Build Reverse Plan)
+        ExecuteNextStep --> ExecuteNextStep : Step Succeeded -> Advance CompensationIndex
+        ExecuteNextStep --> RetryStep : Step Failed (RetryCount <= MaxCompensationRetries)
+        RetryStep --> ExecuteNextStep : Re-enqueue Step Command
+        ExecuteNextStep --> ManualIntervention : Step Failed (RetryCount > MaxCompensationRetries)
+        ExecuteNextStep --> Failed : All Plan Steps Completed (Index == Plan.Count)
+    }
+
+    Completed --> [*] : Terminal Success
+    Failed --> [*] : Terminal Compensated
+    ManualIntervention --> [*] : Terminal Alert (Requires Operator Action)
+

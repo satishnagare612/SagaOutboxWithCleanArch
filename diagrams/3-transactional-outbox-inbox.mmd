@@ -1,0 +1,27 @@
+flowchart TD
+    subgraph Step1 ["Phase 1: Inbound Message Receipt & Inbox Check"]
+        MsgIn["Inbound Service Bus Message<br/>(MessageId, Subject, Body)"] --> ExistsCheck{"inbox.ExistsAsync(MessageId)"}
+        ExistsCheck -- Yes --> Skip["Duplicate Detected<br/>(Skip processing & ACK)"]
+        ExistsCheck -- No --> Process["Execute IdempotentMessageHandler<br/>ProcessAsync(subject, body)"]
+    end
+
+    subgraph Step2 ["Phase 2: Local Atomic ACID Transaction (Single SaveChangesAsync)"]
+        Process --> StateChange["1. Mutate Business Entity<br/>(Order / Stock / Payment / Saga)"]
+        Process --> OutboxStage["2. Outbox.Enqueue(command, queue)<br/>(Pending dispatch)"]
+        Process --> InboxMark["3. Inbox.MarkProcessed(MessageId)"]
+
+        StateChange --> Commit["IUnitOfWork.SaveChangesAsync()<br/>Single Database Transaction"]
+        OutboxStage --> Commit
+        InboxMark --> Commit
+
+        Commit --> SQLTables[("SQL Server Local DB<br/>• Domain Entity Table<br/>• OutboxMessages Table<br/>• InboxMessages Table")]
+    end
+
+    subgraph Step3 ["Phase 3: Asynchronous Leased Outbox Dispatcher (OutboxDispatcher&lt;TContext&gt;)"]
+        SQLTables -.-> Poll["Background Polling Loop<br/>(Every PollIntervalSeconds)"]
+        Poll --> Claim["Atomic Batch Claim SQL Query<br/>WITH (UPDLOCK, READPAST, ROWLOCK)<br/>WHERE ProcessedAt IS NULL<br/>SET LeaseId = GUID, LeaseExpiresAt = UtcNow + LeaseDuration"]
+        Claim --> SendBus["Send Batch to Azure Service Bus<br/>(Sender per queue)"]
+        SendBus --> MarkProcessed["Mark Dispatched SQL Query<br/>UPDATE OutboxMessages<br/>SET ProcessedAt = UtcNow<br/>WHERE Id = MessageId AND LeaseId = GUID"]
+        SendBus -- Error / Timeout --> RetryBackoff["Increment RetryCount &<br/>Set NextAttemptAt (Exponential Backoff)<br/>If &gt; MaxRetries: IsDeadLetter = 1"]
+    end
+

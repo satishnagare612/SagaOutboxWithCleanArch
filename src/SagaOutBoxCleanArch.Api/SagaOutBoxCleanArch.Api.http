@@ -1,0 +1,29 @@
+@SagaOutBoxCleanArch.Api_HostAddress = http://localhost:5249
+@orderId = 00000000-0000-0000-0000-000000000000
+
+### 1. Create a new order (writes CreateOrderCommand and StartSaga outbox rows)
+# @name createOrder
+POST {{SagaOutBoxCleanArch.Api_HostAddress}}/api/order
+Content-Type: application/json
+
+{
+  "productId": "SKU-123",
+  "quantity": 2,
+  "unitPrice": 19.99
+}
+
+### 2. Get recent orders (most recent 100)
+GET {{SagaOutBoxCleanArch.Api_HostAddress}}/api/order
+Accept: application/json
+
+### 3. Get order by ID
+GET {{SagaOutBoxCleanArch.Api_HostAddress}}/api/order/{{orderId}}
+Accept: application/json
+
+### 4. Cancel an order (triggers saga compensation)
+POST {{SagaOutBoxCleanArch.Api_HostAddress}}/api/order/{{orderId}}/cancel
+Accept: application/json
+
+### 5. Health Check (Order API)
+GET {{SagaOutBoxCleanArch.Api_HostAddress}}/health
+Accept: application/json

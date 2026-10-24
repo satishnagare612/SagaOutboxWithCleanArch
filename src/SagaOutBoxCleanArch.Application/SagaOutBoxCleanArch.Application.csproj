@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SagaOutBoxCleanArch.Domain\SagaOutBoxCleanArch.Domain.csproj" />
+    <ProjectReference Include="..\SagaOutBoxCleanArch.Contracts\SagaOutBoxCleanArch.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,46 @@
+flowchart TD
+    %% Clean Architecture Layer Boundaries
+    subgraph PresentationHost ["Presentation & Hosts Layer"]
+        API["SagaOutBoxCleanArch.Api<br/>(Order REST Endpoints & Controllers)"]
+        ORCH["SagaOutBoxCleanArch.Orchestrator<br/>(Saga Host & Status API)"]
+        INV["SagaOutBoxCleanArch.Inventory<br/>(Inventory Worker Host)"]
+        PAY["SagaOutBoxCleanArch.Payment<br/>(Payment Worker Host)"]
+        SHIP["SagaOutBoxCleanArch.Shipping<br/>(Shipping Worker Host)"]
+    end
+
+    subgraph Infrastructure ["Infrastructure Layer"]
+        DBC["EF Core DbContexts & Migrations<br/>(ServiceDbContext, Module DbContexts)"]
+        DISP["OutboxDispatcher&lt;TContext&gt;<br/>(UPDLOCK, READPAST Lease Dispatcher)"]
+        BUS["Azure Service Bus Integration<br/>(QueueMessageWorker, ServiceBusClient)"]
+        REPOS_INFRA["Repository Implementations<br/>(Order, Saga, Stock, Payment, Shipment)"]
+    end
+
+    subgraph Application ["Application Layer (Use Cases & Ports)"]
+        PORTS["Core Messaging Ports<br/>(IOutbox, IInbox, IUnitOfWork)"]
+        HANDLERS["Command & Saga Handlers<br/>(IdempotentMessageHandler, SagaMessageHandler)"]
+        REPO_IF["Repository Interfaces<br/>(IOrderRepository, ISagaRepository, etc.)"]
+        OPTIONS["Configuration Options<br/>(WorkflowOptions, QueueNamesOptions)"]
+    end
+
+    subgraph Domain ["Domain Layer (Enterprise Core)"]
+        ENTITIES["Domain Entities<br/>(Order, SagaInstance, InventoryStock,<br/>PaymentRecord, ShipmentRecord)"]
+        STATUSES["Domain Status Enums & Constants<br/>(OrderStatuses, SagaStatuses)"]
+    end
+
+    subgraph Contracts ["Shared Contracts (Wire Protocol)"]
+        WIRE["Wire Messages & Types<br/>(MessageTypes, WorkflowCommand, SagaReply)"]
+    end
+
+    %% Dependency Rules (Pointing Inward)
+    PresentationHost --> Application
+    PresentationHost --> Infrastructure
+
+    Infrastructure --> Application
+    Infrastructure --> Domain
+
+    Application --> Domain
+    Application --> Contracts
+
+    Infrastructure --> Contracts
+    PresentationHost --> Contracts
+

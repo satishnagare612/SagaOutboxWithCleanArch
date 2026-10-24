@@ -1,0 +1,57 @@
+flowchart LR
+    Client(["HTTP Client / Browser"]) -->|POST /api/orders<br/>GET /api/orders| ApiHost["Order API Host<br/>(SagaOutBoxCleanArch.Api)"]
+    Client -->|GET /api/sagas/{id}<br/>GET /health| OrchHost["Saga Orchestrator<br/>(SagaOutBoxCleanArch.Orchestrator)"]
+
+    subgraph ServiceDatabases ["Service Database Boundary (SQL Server)"]
+        OrderDB[("Order DB<br/>• Orders<br/>• OutboxMessages<br/>• InboxMessages")]
+        SagaDB[("Saga DB<br/>• Sagas<br/>• OutboxMessages<br/>• InboxMessages")]
+        InvDB[("Inventory DB<br/>• Stocks & Reservations<br/>• OutboxMessages<br/>• InboxMessages")]
+        PayDB[("Payment DB<br/>• Payments<br/>• OutboxMessages<br/>• InboxMessages")]
+        ShipDB[("Shipping DB<br/>• Shipments<br/>• OutboxMessages<br/>• InboxMessages")]
+    end
+
+    subgraph Broker ["Message Broker (Azure Service Bus Queues)"]
+        Q_OrderCmd["order-commands"]
+        Q_SagaStart["saga-start"]
+        Q_SagaReply["saga-replies"]
+        Q_InvCmd["inventory-commands"]
+        Q_PayCmd["payment-commands"]
+        Q_ShipCmd["shipping-commands"]
+    end
+
+    subgraph Workers ["Independent Worker Hosts"]
+        InvWorker["Inventory Worker<br/>(SagaOutBoxCleanArch.Inventory)"]
+        PayWorker["Payment Worker<br/>(SagaOutBoxCleanArch.Payment)"]
+        ShipWorker["Shipping Worker<br/>(SagaOutBoxCleanArch.Shipping)"]
+    end
+
+    %% API Host connections
+    ApiHost <-->|ACID Read/Write| OrderDB
+    ApiHost -.->|Outbox Dispatch| Q_OrderCmd
+    ApiHost -.->|Outbox Dispatch| Q_SagaStart
+    Q_OrderCmd -->|Queue Consumer| ApiHost
+
+    %% Orchestrator connections
+    OrchHost <-->|ACID Read/Write| SagaDB
+    Q_SagaStart -->|Queue Consumer| OrchHost
+    Q_SagaReply -->|Queue Consumer| OrchHost
+    OrchHost -.->|Outbox Dispatch| Q_InvCmd
+    OrchHost -.->|Outbox Dispatch| Q_PayCmd
+    OrchHost -.->|Outbox Dispatch| Q_ShipCmd
+    OrchHost -.->|Outbox Dispatch| Q_OrderCmd
+
+    %% Inventory Worker connections
+    InvWorker <-->|ACID Read/Write| InvDB
+    Q_InvCmd -->|Queue Consumer| InvWorker
+    InvWorker -.->|Outbox Dispatch| Q_SagaReply
+
+    %% Payment Worker connections
+    PayWorker <-->|ACID Read/Write| PayDB
+    Q_PayCmd -->|Queue Consumer| PayWorker
+    PayWorker -.->|Outbox Dispatch| Q_SagaReply
+
+    %% Shipping Worker connections
+    ShipWorker <-->|ACID Read/Write| ShipDB
+    Q_ShipCmd -->|Queue Consumer| ShipWorker
+    ShipWorker -.->|Outbox Dispatch| Q_SagaReply
+
