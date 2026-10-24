@@ -113,8 +113,8 @@ Shows independently deployable processes, per-service isolated SQL Server databa
 
 ```mermaid
 flowchart LR
-    Client(["HTTP Client / Browser"]) -->|POST /api/order<br/>GET /api/order| ApiHost["Order API Host<br/>(SagaOutBoxCleanArch.Api)"]
-    Client -->|GET /api/sagas/{id}<br/>GET /health| OrchHost["Saga Orchestrator<br/>(SagaOutBoxCleanArch.Orchestrator)"]
+    Client(["HTTP Client / Browser"]) -->|"POST /api/orders<br/>GET /api/orders"| ApiHost["Order API Host<br/>(SagaOutBoxCleanArch.Api)"]
+    Client -->|"GET /api/sagas/{id}<br/>GET /health"| OrchHost["Saga Orchestrator<br/>(SagaOutBoxCleanArch.Orchestrator)"]
 
     subgraph ServiceDatabases ["Service Database Boundary (SQL Server)"]
         OrderDB[("Order DB<br/>• Orders<br/>• OutboxMessages<br/>• InboxMessages")]
